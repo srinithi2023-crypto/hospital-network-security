@@ -1,1 +1,72 @@
 
+!
+! Switch2 - Cisco 2960 (access layer)
+! Uplink: Fa0/24 -> Switch1 Fa0/23
+!
+! NOTE: verify against your device with "show running-config" before relying on this file.
+!
+hostname Switch2
+!
+! ---------------------------------------------------------------
+! VLAN database
+! ---------------------------------------------------------------
+vlan 10
+ name Emergency
+vlan 20
+ name ICU
+vlan 30
+ name Labs
+vlan 40
+ name Admin
+vlan 50
+ name Guest
+vlan 60
+ name Medical
+!
+! ---------------------------------------------------------------
+! Access ports
+! ---------------------------------------------------------------
+interface FastEthernet0/1
+ description EMERGENCY_PC_4
+ switchport mode access
+ switchport access vlan 10
+!
+interface FastEthernet0/6
+ description EMERGENCY_PC
+ switchport mode access
+ switchport access vlan 10
+!
+interface FastEthernet0/2
+ description ICU_PC_2
+ switchport mode access
+ switchport access vlan 20
+!
+interface FastEthernet0/3
+ description Labs_PC_2
+ switchport mode access
+ switchport access vlan 30
+!
+interface FastEthernet0/4
+ description Admin_Server_2
+ switchport mode access
+ switchport access vlan 40
+!
+interface FastEthernet0/10
+ description Guest_WiFi_Router (WRT300N, WPA2)
+ switchport mode access
+ switchport access vlan 50
+!
+interface FastEthernet0/5
+ description Medical_Device_2
+ switchport mode access
+ switchport access vlan 60
+!
+! ---------------------------------------------------------------
+! Trunk link - 802.1Q
+! ---------------------------------------------------------------
+interface FastEthernet0/24
+ description TRUNK to Switch1 Fa0/23
+ switchport mode trunk
+ switchport trunk allowed vlan 1,10,20,30,40,50,60
+!
+end
