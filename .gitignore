@@ -1,1 +1,20 @@
+# Cisco Packet Tracer
+*.pkt.bak
+*.pka.bak
+~*.pkt
+*.pkt.lock
+backup/
 
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Archives / temp
+*.tmp
+*~
