@@ -1,1 +1,142 @@
 
+!
+! Router0 - Cisco 2911 ISR
+! Role: inter-VLAN routing (router-on-a-stick), DHCP server, ACL enforcement point
+!
+! NOTE: verify against your device with "show running-config" before relying on this file.
+!
+version 15.1
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Router
+!
+! ---------------------------------------------------------------
+! DHCP pools - one per department VLAN
+! ---------------------------------------------------------------
+ip dhcp pool VLAN10
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.10.1
+ip dhcp pool VLAN20
+ network 192.168.20.0 255.255.255.0
+ default-router 192.168.20.1
+ip dhcp pool VLAN30
+ network 192.168.30.0 255.255.255.0
+ default-router 192.168.30.1
+ip dhcp pool VLAN40
+ network 192.168.40.0 255.255.255.0
+ default-router 192.168.40.1
+ip dhcp pool VLAN50
+ network 192.168.50.0 255.255.255.0
+ default-router 192.168.50.1
+ip dhcp pool VLAN60
+ network 192.168.60.0 255.255.255.0
+ default-router 192.168.60.1
+!
+! Reserve the low addresses for statically assigned servers
+ip dhcp excluded-address 192.168.10.1 192.168.10.10
+ip dhcp excluded-address 192.168.20.1 192.168.20.10
+ip dhcp excluded-address 192.168.30.1 192.168.30.10
+ip dhcp excluded-address 192.168.40.1 192.168.40.10
+ip dhcp excluded-address 192.168.50.1 192.168.50.10
+ip dhcp excluded-address 192.168.60.1 192.168.60.10
+!
+! ---------------------------------------------------------------
+! Trunk to Switch1 - 802.1Q subinterface per VLAN
+! ---------------------------------------------------------------
+interface GigabitEthernet0/0
+ no ip address
+ duplex auto
+ speed auto
+ no shutdown
+!
+interface GigabitEthernet0/0.10
+ description Emergency
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+!
+interface GigabitEthernet0/0.20
+ description ICU
+ encapsulation dot1Q 20
+ ip address 192.168.20.1 255.255.255.0
+ ip access-group 100 in
+!
+interface GigabitEthernet0/0.30
+ description Labs
+ encapsulation dot1Q 30
+ ip address 192.168.30.1 255.255.255.0
+!
+interface GigabitEthernet0/0.40
+ description Admin
+ encapsulation dot1Q 40
+ ip address 192.168.40.1 255.255.255.0
+!
+interface GigabitEthernet0/0.50
+ description Guest
+ encapsulation dot1Q 50
+ ip address 192.168.50.1 255.255.255.0
+!
+interface GigabitEthernet0/0.60
+ description Medical Devices
+ encapsulation dot1Q 60
+ ip address 192.168.60.1 255.255.255.0
+!
+interface GigabitEthernet0/1
+ no ip address
+ shutdown
+!
+interface GigabitEthernet0/2
+ no ip address
+ shutdown
+!
+! ---------------------------------------------------------------
+! Extended ACL 100 - inter-department access policy
+! ---------------------------------------------------------------
+! As verified in the project (applied inbound on the ICU subinterface):
+access-list 100 deny ip 192.168.20.0 0.0.0.255 192.168.50.0 0.0.0.255
+access-list 100 permit ip any any
+!
+! ---------------------------------------------------------------
+! Optional: full guest-isolation ACL
+! Apply inbound on G0/0.50 to enforce the complete access matrix.
+! Uncomment and adapt as needed.
+! ---------------------------------------------------------------
+! ip access-list extended GUEST_ISOLATION
+!  remark Allow guests DNS and DHCP toward the gateway
+!  permit udp 192.168.50.0 0.0.0.255 any eq 53
+!  permit udp 192.168.50.0 0.0.0.255 any eq 67
+!  remark Block guests from every internal segment
+!  deny   ip 192.168.50.0 0.0.0.255 192.168.10.0 0.0.0.255
+!  deny   ip 192.168.50.0 0.0.0.255 192.168.20.0 0.0.0.255
+!  deny   ip 192.168.50.0 0.0.0.255 192.168.30.0 0.0.0.255
+!  deny   ip 192.168.50.0 0.0.0.255 192.168.40.0 0.0.0.255
+!  deny   ip 192.168.50.0 0.0.0.255 192.168.60.0 0.0.0.255
+!  permit ip any any
+! !
+! interface GigabitEthernet0/0.50
+!  ip access-group GUEST_ISOLATION in
+!
+! ---------------------------------------------------------------
+! Optional: medical device egress restriction
+! Medical devices reach Emergency only; all other internal traffic denied.
+! ---------------------------------------------------------------
+! ip access-list extended MEDICAL_EGRESS
+!  permit ip 192.168.60.0 0.0.0.255 192.168.10.0 0.0.0.255
+!  deny   ip 192.168.60.0 0.0.0.255 192.168.20.0 0.0.0.255
+!  deny   ip 192.168.60.0 0.0.0.255 192.168.30.0 0.0.0.255
+!  deny   ip 192.168.60.0 0.0.0.255 192.168.40.0 0.0.0.255
+!  deny   ip 192.168.60.0 0.0.0.255 192.168.50.0 0.0.0.255
+!  permit ip any any
+! !
+! interface GigabitEthernet0/0.60
+!  ip access-group MEDICAL_EGRESS in
+!
+line con 0
+!
+line aux 0
+!
+line vty 0 4
+ login
+!
+end
